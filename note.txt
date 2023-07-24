@@ -1,0 +1,5 @@
+производит миграцию бд
+npx prisma migrate dev --name _migrate_name_
+
+запускает веб интерфейс призмы
+npx prisma studio
