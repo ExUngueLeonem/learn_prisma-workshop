@@ -2,6 +2,7 @@ import { ApolloServer } from "apollo-server";
 import { DateTimeResolver } from "graphql-scalars";
 import { Context, context } from "./context";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
+import { prisma } from "@prisma/client";
 
 const typeDefs = `
 type Query {
@@ -99,7 +100,8 @@ const resolvers = {
   },
   User: {
     posts: (parent, _args, context: Context) => {
-      return [];
+      const {prisma} = context
+      return []// prisma.user.findUnique({where: {id: parent.id}}).posts();
     },
   },
   DateTime: DateTimeResolver,
