@@ -42,10 +42,13 @@ scalar DateTime
 const resolvers = {
   Query: {
     allUsers: (_parent, _args, context: Context) => {
-      // TODO
+      const {prisma} = context;
+      return prisma.user.findMany()
     },
     postById: (_parent, args: { id: number }, context: Context) => {
-      // TODO
+      const {prisma} = context
+      const {id} = args
+      return prisma.post.findUnique({where: {id}})
     },
     feed: (
       _parent,
@@ -90,7 +93,8 @@ const resolvers = {
   },
   Post: {
     author: (parent, _args, context: Context) => {
-      return null;
+      const {prisma} = context
+      return prisma.post.findUnique({where: {id: parent.id}}).author();
     },
   },
   User: {
@@ -107,6 +111,6 @@ const server = new ApolloServer({
   context,
   plugins: [ApolloServerPluginLandingPageGraphQLPlayground()],
 });
-server.listen({ port: 4000 }, () =>
+server.listen({port: 4000}, () =>
   console.log(`🚀 Server ready at: http://localhost:4000`)
 );
