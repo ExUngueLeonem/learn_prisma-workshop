@@ -2,7 +2,6 @@ import { ApolloServer } from "apollo-server";
 import { DateTimeResolver } from "graphql-scalars";
 import { Context, context } from "./context";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
-import { prisma } from "@prisma/client";
 
 const typeDefs = `
 type Query {
@@ -42,15 +41,19 @@ scalar DateTime
 
 const resolvers = {
   Query: {
+    //Возращает всех пользователей.
     allUsers: (_parent, _args, context: Context) => {
       const {prisma} = context;
       return prisma.user.findMany()
     },
+    //Возвращает публикацию по ее ID.
     postById: (_parent, args: { id: number }, context: Context) => {
       const {prisma} = context
       const {id} = args
       return prisma.post.findUnique({where: {id}})
     },
+    //Возвращает все публикации с опциональной пагинацией и фильтрацией.
+    //Публикация проходит фильтр, если строка поиска содержится в заголовке или теле публикации.
     feed: (
       _parent,
       args: {
@@ -60,36 +63,90 @@ const resolvers = {
       },
       context: Context
     ) => {
-      // TODO
+      const {prisma} = context
+      const {searchString, take, skip} = args
+      return prisma.post.findMany({
+        where: {
+          OR: [
+            {title: {contains: searchString}},
+            {content: {contains: searchString}}
+          ]
+        },
+        take,
+        skip,
+      })
     },
+    //Возвращает все необупликованные посты пользователя.
     draftsByUser: (_parent, args: { id: number }, context: Context) => {
-      // TODO
+      const {prisma} = context
+      const {id} = args
+      return prisma.user.findUnique({where: {id}}).posts({where: {published: false}})
     },
   },
   Mutation: {
+    //Создает нового пользователя.
     signupUser: (
       _parent,
       args: { name: string | undefined; email: string },
       context: Context
     ) => {
-      // TODO
+      const {prisma} = context
+      const {name, email} = args;
+      return prisma.user.create({
+        data: {
+          name,
+          email
+        }
+      })
     },
+    //Создает новый пост.
     createDraft: (
       _parent,
       args: { title: string; content: string | undefined; authorEmail: string },
       context: Context
     ) => {
-      // TODO
+      const {prisma} = context
+      const {title, content, authorEmail} = args
+      return prisma.post.create({
+        data: {
+          title,
+          content,
+          author: {
+            connect: {
+              email: authorEmail
+            }
+          },
+        }
+      })
     },
+    //Увеличивает счетчик просмотров на 1.
     incrementPostViewCount: (
       _parent,
       args: { id: number },
       context: Context
     ) => {
-      // TODO
+      const {prisma} = context
+      const {id} = args
+      return prisma.post.update({
+        where: {
+          id
+        },
+        data: {
+          viewCount: {
+            increment: 1
+          }
+        }
+      })
     },
+    //Удаляет пост.
     deletePost: (_parent, args: { id: number }, context: Context) => {
-      // TODO
+      const {prisma} = context
+      const {id} = args
+      return prisma.post.delete({
+        where: {
+          id
+        }
+      })
     },
   },
   Post: {
@@ -101,7 +158,9 @@ const resolvers = {
   User: {
     posts: (parent, _args, context: Context) => {
       const {prisma} = context
-      return []// prisma.user.findUnique({where: {id: parent.id}}).posts();
+      return prisma.user.findUnique({
+        where: {id: parent.id}
+      }).posts()
     },
   },
   DateTime: DateTimeResolver,
